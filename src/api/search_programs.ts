@@ -1,3 +1,4 @@
+import { ParamsDictionary } from 'express-serve-static-core';
 import { SearchResult, repo as ProgramsRepo, GeoLocation } from '../repos/programs/repo';
 
 /**
@@ -6,7 +7,6 @@ import { SearchResult, repo as ProgramsRepo, GeoLocation } from '../repos/progra
 
 
 // The various sort types that our API supports
-
 export enum SortType {
   RELEVANCY = 'RELEVANCY',
   COST_LOW_TO_HIGH = 'COST_LOW_TO_HIGH',
@@ -23,6 +23,28 @@ export interface ProgramApi {
     sortType: SortType,
     userGeoLocation?: GeoLocation,
   ) => SearchResult;
+}
+
+export enum ExpressHttpVerb {
+  GET = 'get',
+  POST = 'post',
+}
+
+export interface ValidationError {
+  message: string;
+}
+
+export interface RequestValidation {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validate: (params: ParamsDictionary, body: any) => ValidationError[];
+}
+
+export interface ApiHttpConfig {
+  httpVerb: ExpressHttpVerb;
+  route: string;
+  requestValidations?: RequestValidation[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  handler: (params: ParamsDictionary, body: any) => object;
 }
 
 export const api: ProgramApi = {
@@ -57,3 +79,14 @@ export const api: ProgramApi = {
     return null;
   },
 };
+
+export const apiConfiguration: ApiHttpConfig[] = [
+  {
+    httpVerb: ExpressHttpVerb.POST,
+    route: '/search/relevancy',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    handler: (params: ParamsDictionary, body: any): object => api.searchPrograms(
+      body.search, body.length, body.offset, SortType.RELEVANCY,
+    ),
+  },
+];
