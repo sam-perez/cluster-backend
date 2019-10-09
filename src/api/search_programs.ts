@@ -1,4 +1,4 @@
-import { SearchResult, repo as ProgramsRepo } from '../repos/programs/repo';
+import { SearchResult, repo as ProgramsRepo, GeoLocation } from '../repos/programs/repo';
 
 /**
  * Handles searching for programs.
@@ -20,15 +20,19 @@ export interface ProgramApi {
     search: string,
     length: number,
     offset: number,
-    sortType: SortType
+    sortType: SortType,
+    userGeoLocation?: GeoLocation,
   ) => SearchResult;
 }
 
 export const api: ProgramApi = {
   searchPrograms: (
     search: string,
-    length: number, offset: number,
+    length: number,
+    offset: number,
     sortType: SortType,
+    // this design needs to be thought out more. Maybe just pass through fns?
+    userGeoLocation: GeoLocation = null,
   ): SearchResult => {
     if (sortType === SortType.RELEVANCY) {
       return ProgramsRepo.searchByRelevance(search, length, offset);
@@ -44,6 +48,10 @@ export const api: ProgramApi = {
 
     if (sortType === SortType.DURATION) {
       return ProgramsRepo.searchByDuration(search, length, offset);
+    }
+
+    if (sortType === SortType.DISTANCE) {
+      return ProgramsRepo.searchByDistance(search, userGeoLocation, length, offset);
     }
 
     return null;

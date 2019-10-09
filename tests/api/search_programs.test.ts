@@ -1,6 +1,7 @@
 import { expect } from 'chai';
 
 import { api as ProgramsApi, SortType } from '../../src/api/search_programs';
+import { GeoLocation } from '../../src/repos/programs/repo';
 
 describe('Search Programs Tests', () => {
   describe('By RELEVANCY', () => {
@@ -167,6 +168,67 @@ describe('Search Programs Tests', () => {
                 },
               ],
             totalNumberOfMatchingPrograms: 10,
+          },
+        );
+      });
+    });
+  });
+
+  describe('By DISTANCE', () => {
+    describe('when we search for "Biomanufacturing", length 5, offset 0, and lat: 39 long:-122', () => {
+      it('should return the three results lowest distance order', () => {
+        const userGeoLocation: GeoLocation = {
+          latitude: 39,
+          longitude: -122,
+        };
+
+        const result = ProgramsApi.searchPrograms('Biomanufacturing', 3, 0, SortType.DISTANCE, userGeoLocation);
+
+        expect(result).to.deep.equal(
+          {
+            programs:
+            [
+              {
+                annualTuition: 1555,
+                degreeType: "Bachelor's",
+                delivery: 'Campus',
+                durationInDays: 120,
+                geoLocation: {
+                  latitude: 34.024212,
+                  longitude: -118.496475,
+                },
+                location: 'Santa Monica, CA',
+                programName: 'Biomanufacturing',
+                school: 'Santa Monica College',
+              },
+              {
+                annualTuition: 4000,
+                degreeType: "Bachelor's",
+                delivery: 'Campus',
+                durationInDays: 60,
+                geoLocation: {
+                  latitude: 33.77005,
+                  longitude: -118.193741,
+                },
+                location: 'Long Beach, CA',
+                programName: 'Biomanufacturing',
+                school: 'Long Beach State University',
+              },
+              {
+                annualTuition: 2451,
+                degreeType: "Associate's",
+                delivery: 'Campus',
+                durationInDays: 90,
+                geoLocation: {
+                  latitude: 42.65258,
+                  longitude: -73.756233,
+                },
+                location: 'Albany, NY',
+                programName: 'Biomanufacturing',
+                school: 'SUNY Albany',
+              },
+            ],
+            totalNumberOfMatchingPrograms: 3,
           },
         );
       });

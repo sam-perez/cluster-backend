@@ -9,6 +9,7 @@
  */
 
 import * as R from 'ramda';
+import { getDistance } from 'geolib';
 import programs from './programs.json';
 // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
 // @ts-ignore
@@ -54,14 +55,12 @@ export interface ProgramRepo {
   searchByCostLowToHigh: (search: string, length: number, offset: number) => SearchResult;
   searchByCostHighToLow: (search: string, length: number, offset: number) => SearchResult;
   searchByDuration: (search: string, length: number, offset: number) => SearchResult;
-  /*
   searchByDistance: (
     search: string,
     userGeoLocation: GeoLocation,
     length: number,
     offset: number
   ) => SearchResult;
-  */
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -191,6 +190,34 @@ export const repo: ProgramRepo = {
       ) => durationInDaysA - durationInDaysB,
       matchingPrograms,
     );
+
+    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
+  },
+  searchByDistance: (
+    search: string,
+    userGeoLocation: GeoLocation,
+    length: number,
+    offset: number,
+  ): SearchResult => {
+    const matchingPrograms = findMatchingPrograms(search);
+
+    type ProgramWithDistanceScore = { distanceScore: number; program: Program };
+
+    const programsWithDistanceScore = R.map(
+      (program: Program): ProgramWithDistanceScore => ({
+        program,
+        distanceScore: getDistance(userGeoLocation, program.geoLocation),
+      }),
+      matchingPrograms,
+    );
+
+    const sortedPrograms = R.pipe(
+      R.sort((
+        { distanceScore: relevanceScoreA }: ProgramWithDistanceScore,
+        { distanceScore: relevanceScoreB }: ProgramWithDistanceScore,
+      ) => relevanceScoreA - relevanceScoreB),
+      R.map(({ program }: ProgramWithDistanceScore) => program),
+    )(programsWithDistanceScore);
 
     return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
   },
