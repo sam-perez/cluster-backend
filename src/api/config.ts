@@ -25,7 +25,7 @@ const hookUpExpressServerToApiConfig = (app): void => {
         });
 
         if (validationErrors.length > 0) {
-          throw new RequestValidationFailedError('Validating the search request failed', validationErrors);
+          throw new RequestValidationFailedError('Validating the search request failed.', validationErrors);
         }
 
         const result = apiConfig.handler(req.params, req.body);

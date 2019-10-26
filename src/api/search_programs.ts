@@ -95,7 +95,7 @@ export const apiConfiguration: ApiHttpConfig[] = [
         search: body.search,
         length: body.length,
         offset: body.offset,
-        userGeoLocation: body.geoLocation || null,
+        userGeoLocation: body.userGeoLocation || null,
       };
 
       return api.searchPrograms(searchRequest, body.sortType);

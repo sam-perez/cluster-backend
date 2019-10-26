@@ -1,4 +1,8 @@
-// Shim for our logging. Since this is a simple coding challenge, we only log to the console
+/*
+ Shim for our logging. Since this is a simple coding challenge,
+ we only log to the console. Could layer in some external logging library,
+ like Rollbar, Sentry, etc...
+*/
 
 export interface ClusterLogger {
   info: (message: string) => void;

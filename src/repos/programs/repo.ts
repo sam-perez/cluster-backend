@@ -129,6 +129,18 @@ export interface SearchRequest {
   userGeoLocation?: GeoLocation;
 }
 
+/*
+  Each search consists of the same three steps.
+
+  1) Find matching programs: given the search string, find all programs that 'match' the string
+
+  2) Sort the programs given the sorting criteria
+
+  3) Extract the correct slice of programs given the length and offset params
+
+  This search wrapper is an abstraction that takes care of steps 1) and 3) automatically,
+  which are the same between each sort type at the moment.
+*/
 const basicSearchWrapper = (
   programSorter: (matchingPrograms: Program[], searchRequest: SearchRequest) => Program[],
 ) => (searchRequest: SearchRequest): SearchResult => {

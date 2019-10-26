@@ -1,3 +1,4 @@
+import http from 'http';
 import express from 'express';
 
 import hookUpExpressServerToAppConfig from './api/config';
@@ -6,12 +7,16 @@ import logging from './core/logging';
 
 const logger = logging.getLogger('SERVER');
 
-const app = express();
-app.use(express.json());
+const createServer = (): http.Server => {
+  const app = express();
+  app.use(express.json());
 
-hookUpExpressServerToAppConfig(app);
+  hookUpExpressServerToAppConfig(app);
 
-// start the Express server
-app.listen(config.serverPort, () => {
-  logger.info(`server started at http://localhost:${config.serverPort}`);
-});
+  // start the Express server
+  return app.listen(config.serverPort, () => {
+    logger.info(`server started at http://localhost:${config.serverPort}`);
+  });
+};
+
+export default createServer;
