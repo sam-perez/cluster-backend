@@ -1,10 +1,12 @@
-import { ParamsDictionary } from 'express-serve-static-core';
-import { SearchResult, repo as ProgramsRepo, GeoLocation } from '../repos/programs/repo';
+import t from 'tcomb-validation';
+import { SearchResult, repo as ProgramsRepo, SearchRequest } from '../repos/programs/repo';
+import { ApiHttpConfig, ExpressHttpVerb, RequestValidation } from './core';
+import { UserGeoLocationMissingError, RequestValidationError } from '../core/errors';
+import { NonNegativeInteger } from './validators';
 
 /**
  * Handles searching for programs.
  * */
-
 
 // The various sort types that our API supports
 export enum SortType {
@@ -17,76 +19,87 @@ export enum SortType {
 
 export interface ProgramApi {
   searchPrograms: (
-    search: string,
-    length: number,
-    offset: number,
+    searchRequest: SearchRequest,
     sortType: SortType,
-    userGeoLocation?: GeoLocation,
   ) => SearchResult;
-}
-
-export enum ExpressHttpVerb {
-  GET = 'get',
-  POST = 'post',
-}
-
-export interface ValidationError {
-  message: string;
-}
-
-export interface RequestValidation {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  validate: (params: ParamsDictionary, body: any) => ValidationError[];
-}
-
-export interface ApiHttpConfig {
-  httpVerb: ExpressHttpVerb;
-  route: string;
-  requestValidations?: RequestValidation[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  handler: (params: ParamsDictionary, body: any) => object;
 }
 
 export const api: ProgramApi = {
   searchPrograms: (
-    search: string,
-    length: number,
-    offset: number,
+    searchRequest: SearchRequest,
     sortType: SortType,
-    // this design needs to be thought out more. Maybe just pass through fns?
-    userGeoLocation: GeoLocation = null,
   ): SearchResult => {
     if (sortType === SortType.RELEVANCY) {
-      return ProgramsRepo.searchByRelevance(search, length, offset);
+      return ProgramsRepo.searchByRelevance(searchRequest);
     }
 
     if (sortType === SortType.COST_HIGH_TO_LOW) {
-      return ProgramsRepo.searchByCostHighToLow(search, length, offset);
+      return ProgramsRepo.searchByCostHighToLow(searchRequest);
     }
 
     if (sortType === SortType.COST_LOW_TO_HIGH) {
-      return ProgramsRepo.searchByCostLowToHigh(search, length, offset);
+      return ProgramsRepo.searchByCostLowToHigh(searchRequest);
     }
 
     if (sortType === SortType.DURATION) {
-      return ProgramsRepo.searchByDuration(search, length, offset);
+      return ProgramsRepo.searchByDuration(searchRequest);
     }
 
     if (sortType === SortType.DISTANCE) {
-      return ProgramsRepo.searchByDistance(search, userGeoLocation, length, offset);
+      if (searchRequest.userGeoLocation === null) {
+        throw new UserGeoLocationMissingError('geoLocation is required for a distance sort.');
+      }
+
+      return ProgramsRepo.searchByDistance(searchRequest);
     }
 
     return null;
   },
 };
 
+/**
+ * Leverage the Tcomb library to validate incoming data from the outside world.
+ */
+const SearchRequestBody = t.struct({
+  search: t.String,
+  length: NonNegativeInteger,
+  offset: NonNegativeInteger,
+  userGeoLocation: t.maybe(t.struct({
+    latitude: t.Number,
+    longitude: t.Number,
+  })),
+  sortType: t.enums.of([
+    SortType.COST_HIGH_TO_LOW,
+    SortType.COST_LOW_TO_HIGH,
+    SortType.DISTANCE,
+    SortType.DURATION,
+    SortType.RELEVANCY,
+  ]),
+});
+
+const searchRequestBodyRequestValidator: RequestValidation = {
+  validate: (params, body): RequestValidationError[] => {
+    const validationResult = t.validate(body, SearchRequestBody);
+    return validationResult.errors.map(
+      (validationError) => new RequestValidationError(validationError.message),
+    );
+  },
+};
+
 export const apiConfiguration: ApiHttpConfig[] = [
   {
     httpVerb: ExpressHttpVerb.POST,
-    route: '/search/relevancy',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    handler: (params: ParamsDictionary, body: any): object => api.searchPrograms(
-      body.search, body.length, body.offset, SortType.RELEVANCY,
-    ),
+    route: '/search',
+    handler: (params: Record<string, any>, body: any): SearchResult => {
+      const searchRequest: SearchRequest = {
+        search: body.search,
+        length: body.length,
+        offset: body.offset,
+        userGeoLocation: body.geoLocation || null,
+      };
+
+      return api.searchPrograms(searchRequest, body.sortType);
+    },
+    requestValidations: [searchRequestBodyRequestValidator],
   },
 ];

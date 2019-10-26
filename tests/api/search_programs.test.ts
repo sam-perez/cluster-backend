@@ -7,7 +7,14 @@ describe('Search Programs Tests', () => {
   describe('By RELEVANCY', () => {
     describe('when we search for "long beach air", length 1, offset 0', () => {
       it('should return the correct result', () => {
-        const result = ProgramsApi.searchPrograms('long beach air', 1, 0, SortType.RELEVANCY);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'long beach air',
+            length: 1,
+            offset: 0,
+          },
+          SortType.RELEVANCY,
+        );
 
         expect(result).to.deep.equal(
           {
@@ -32,7 +39,14 @@ describe('Search Programs Tests', () => {
 
     describe('when we search for "santa", length 2, offset 9', () => {
       it('should return the correct results', () => {
-        const result = ProgramsApi.searchPrograms('santa', 2, 9, SortType.RELEVANCY);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'santa',
+            length: 2,
+            offset: 9,
+          },
+          SortType.RELEVANCY,
+        );
 
         expect(result).to.deep.equal(
           {
@@ -74,7 +88,15 @@ describe('Search Programs Tests', () => {
   describe('By COST_HIGH_TO_LOW', () => {
     describe('when we search for "santa monica", length 1, offset 0', () => {
       it('should return the highest cost result', () => {
-        const result = ProgramsApi.searchPrograms('santa monica', 1, 0, SortType.COST_HIGH_TO_LOW);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'santa monica',
+            length: 1,
+            offset: 0,
+          },
+          SortType.COST_HIGH_TO_LOW,
+        );
+
 
         expect(result).to.deep.equal(
           {
@@ -104,7 +126,15 @@ describe('Search Programs Tests', () => {
   describe('By COST_LOW_TO_HIGH', () => {
     describe('when we search for "santa monica", length 1, offset 0', () => {
       it('should return the lowest cost result', () => {
-        const result = ProgramsApi.searchPrograms('santa monica', 1, 0, SortType.COST_LOW_TO_HIGH);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'santa monica',
+            length: 1,
+            offset: 0,
+          },
+          SortType.COST_LOW_TO_HIGH,
+        );
+
 
         expect(result).to.deep.equal(
           {
@@ -134,7 +164,15 @@ describe('Search Programs Tests', () => {
   describe('By DURATION', () => {
     describe('when we search for "santa monica", length 2, offset 0', () => {
       it('should return the lowest duration results', () => {
-        const result = ProgramsApi.searchPrograms('santa monica', 2, 0, SortType.DURATION);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'santa monica',
+            length: 2,
+            offset: 0,
+          },
+          SortType.DURATION,
+        );
+
 
         expect(result).to.deep.equal(
           {
@@ -182,7 +220,16 @@ describe('Search Programs Tests', () => {
           longitude: -122,
         };
 
-        const result = ProgramsApi.searchPrograms('Biomanufacturing', 3, 0, SortType.DISTANCE, userGeoLocation);
+        const result = ProgramsApi.searchPrograms(
+          {
+            search: 'Biomanufacturing',
+            length: 3,
+            offset: 0,
+            userGeoLocation,
+          },
+          SortType.DISTANCE,
+        );
+
 
         expect(result).to.deep.equal(
           {

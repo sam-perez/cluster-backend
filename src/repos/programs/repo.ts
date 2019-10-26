@@ -51,19 +51,13 @@ export interface SearchResult {
 }
 
 export interface ProgramRepo {
-  searchByRelevance: (search: string, length: number, offset: number) => SearchResult;
-  searchByCostLowToHigh: (search: string, length: number, offset: number) => SearchResult;
-  searchByCostHighToLow: (search: string, length: number, offset: number) => SearchResult;
-  searchByDuration: (search: string, length: number, offset: number) => SearchResult;
-  searchByDistance: (
-    search: string,
-    userGeoLocation: GeoLocation,
-    length: number,
-    offset: number
-  ) => SearchResult;
+  searchByRelevance: (searchRequest: SearchRequest) => SearchResult;
+  searchByCostLowToHigh: (searchRequest: SearchRequest) => SearchResult;
+  searchByCostHighToLow: (searchRequest: SearchRequest) => SearchResult;
+  searchByDuration: (searchRequest: SearchRequest) => SearchResult;
+  searchByDistance: (searchRequest: SearchRequest) => SearchResult;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const IN_MEMORY_PROGRAMS = R.map((program: any): Program => ({
   school: program.School,
   programName: program['Program Name'],
@@ -97,7 +91,6 @@ const findMatchingPrograms = (search: string): Program[] => {
   // convert each program to a filterable string
   const filteredProgramsIdx = filter(search, filterablePrograms, { mark: false }).items;
 
-  // eslint-disable-next-line no-underscore-dangle
   const filteredPrograms = R.map(
     (id: number) => IN_MEMORY_PROGRAMS[id],
     filteredProgramsIdx,
@@ -123,102 +116,107 @@ const relevanceScorer = (search: string, program: Program): number => R.sum(
 
 const getSearchResultFromSortedPrograms = (
   sortedPrograms: Program[],
-  length: number,
-  offset: number,
+  searchRequest: SearchRequest,
 ): SearchResult => ({
   totalNumberOfMatchingPrograms: sortedPrograms.length,
-  programs: sortedPrograms.slice(offset, offset + length),
+  programs: sortedPrograms.slice(searchRequest.offset, searchRequest.offset + searchRequest.length),
 });
 
+export interface SearchRequest {
+  search: string;
+  length: number;
+  offset: number;
+  userGeoLocation?: GeoLocation;
+}
+
+const basicSearchWrapper = (
+  programSorter: (matchingPrograms: Program[], searchRequest: SearchRequest) => Program[],
+) => (searchRequest: SearchRequest): SearchResult => {
+  const matchingPrograms = findMatchingPrograms(searchRequest.search);
+  const sortedPrograms = programSorter(matchingPrograms, searchRequest);
+  return getSearchResultFromSortedPrograms(sortedPrograms, searchRequest);
+};
+
 export const repo: ProgramRepo = {
-  searchByRelevance: (search: string, length: number, offset: number): SearchResult => {
-    const matchingPrograms = findMatchingPrograms(search);
+  searchByRelevance: basicSearchWrapper(
+    (matchingPrograms: Program[], searchRequest: SearchRequest): Program[] => {
+      const programsWithRelevanceScore = R.map(
+        (program: Program) => ({
+          program,
+          relevanceScore: relevanceScorer(searchRequest.search, program),
+        }),
+        matchingPrograms,
+      );
 
-    type ProgramWithRelevanceScore = { relevanceScore: number; program: Program };
+      const sortedPrograms = R.pipe(
+        R.sort((
+          { relevanceScore: relevanceScoreA },
+          { relevanceScore: relevanceScoreB },
+        ) => relevanceScoreA - relevanceScoreB),
+        R.map(({ program }) => program),
+      )(programsWithRelevanceScore);
 
-    const programsWithRelevanceScore = R.map(
-      (program: Program): ProgramWithRelevanceScore => ({
-        program,
-        relevanceScore: relevanceScorer(search, program),
-      }),
-      matchingPrograms,
-    );
+      return sortedPrograms;
+    },
+  ),
+  searchByCostLowToHigh: basicSearchWrapper(
+    (matchingPrograms: Program[]): Program[] => {
+      const sortedPrograms = R.sort(
+        (
+          { annualTuition: annualTuitionA }: Program,
+          { annualTuition: annualTuitionB }: Program,
+        ) => annualTuitionA - annualTuitionB,
+        matchingPrograms,
+      );
 
-    const sortedPrograms = R.pipe(
-      R.sort((
-        { relevanceScore: relevanceScoreA }: ProgramWithRelevanceScore,
-        { relevanceScore: relevanceScoreB }: ProgramWithRelevanceScore,
-      ) => relevanceScoreA - relevanceScoreB),
-      R.map(({ program }: ProgramWithRelevanceScore) => program),
-    )(programsWithRelevanceScore);
+      return sortedPrograms;
+    },
+  ),
+  searchByCostHighToLow: basicSearchWrapper(
+    (matchingPrograms: Program[]): Program[] => {
+      const sortedPrograms = R.sort(
+        (
+          { annualTuition: annualTuitionA }: Program,
+          { annualTuition: annualTuitionB }: Program,
+        ) => annualTuitionB - annualTuitionA,
+        matchingPrograms,
+      );
 
-    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
-  },
-  searchByCostLowToHigh: (search: string, length: number, offset: number): SearchResult => {
-    const matchingPrograms = findMatchingPrograms(search);
+      return sortedPrograms;
+    },
+  ),
+  searchByDuration: basicSearchWrapper(
+    (matchingPrograms: Program[]): Program[] => {
+      const sortedPrograms = R.sort(
+        (
+          { durationInDays: durationInDaysA }: Program,
+          { durationInDays: durationInDaysB }: Program,
+        ) => durationInDaysA - durationInDaysB,
+        matchingPrograms,
+      );
 
-    const sortedPrograms = R.sort(
-      (
-        { annualTuition: annualTuitionA }: Program,
-        { annualTuition: annualTuitionB }: Program,
-      ) => annualTuitionA - annualTuitionB,
-      matchingPrograms,
-    );
+      return sortedPrograms;
+    },
+  ),
+  searchByDistance: basicSearchWrapper(
+    (matchingPrograms: Program[], searchRequest: SearchRequest): Program[] => {
+      const programsWithDistanceScore = R.map(
+        (program: Program) => ({
+          program,
+          distanceScore: getDistance(searchRequest.userGeoLocation, program.geoLocation),
+        }),
+        matchingPrograms,
+      );
 
-    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
-  },
-  searchByCostHighToLow: (search: string, length: number, offset: number): SearchResult => {
-    const matchingPrograms = findMatchingPrograms(search);
+      const sortedPrograms = R.pipe(
+        R.sort((
+          { distanceScore: relevanceScoreA },
+          { distanceScore: relevanceScoreB },
+        ) => relevanceScoreA - relevanceScoreB),
+        R.map(({ program }) => program),
+      )(programsWithDistanceScore);
 
-    const sortedPrograms = R.sort(
-      (
-        { annualTuition: annualTuitionA }: Program,
-        { annualTuition: annualTuitionB }: Program,
-      ) => annualTuitionB - annualTuitionA,
-      matchingPrograms,
-    );
-
-    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
-  },
-  searchByDuration: (search: string, length: number, offset: number): SearchResult => {
-    const matchingPrograms = findMatchingPrograms(search);
-
-    const sortedPrograms = R.sort(
-      (
-        { durationInDays: durationInDaysA }: Program,
-        { durationInDays: durationInDaysB }: Program,
-      ) => durationInDaysA - durationInDaysB,
-      matchingPrograms,
-    );
-
-    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
-  },
-  searchByDistance: (
-    search: string,
-    userGeoLocation: GeoLocation,
-    length: number,
-    offset: number,
-  ): SearchResult => {
-    const matchingPrograms = findMatchingPrograms(search);
-
-    type ProgramWithDistanceScore = { distanceScore: number; program: Program };
-
-    const programsWithDistanceScore = R.map(
-      (program: Program): ProgramWithDistanceScore => ({
-        program,
-        distanceScore: getDistance(userGeoLocation, program.geoLocation),
-      }),
-      matchingPrograms,
-    );
-
-    const sortedPrograms = R.pipe(
-      R.sort((
-        { distanceScore: relevanceScoreA }: ProgramWithDistanceScore,
-        { distanceScore: relevanceScoreB }: ProgramWithDistanceScore,
-      ) => relevanceScoreA - relevanceScoreB),
-      R.map(({ program }: ProgramWithDistanceScore) => program),
-    )(programsWithDistanceScore);
-
-    return getSearchResultFromSortedPrograms(sortedPrograms, length, offset);
-  },
+      return sortedPrograms;
+    },
+  ),
 };

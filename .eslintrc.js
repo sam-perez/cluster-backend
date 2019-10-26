@@ -14,6 +14,7 @@ module.exports = {
         'react/jsx-filename-extension': [2, {extensions: ['.js', '.jsx', '.ts', '.tsx']}],
         '@typescript-eslint/indent': [2, 2],
         'import/no-extraneous-dependencies': ["error", {"devDependencies": ["**/*.test.*", "**/*.spec.*"]}],
+        '@typescript-eslint/no-explicit-any': [0]
     },
     env: {"mocha": true}
 };

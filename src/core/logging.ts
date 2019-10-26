@@ -2,17 +2,17 @@
 
 export interface ClusterLogger {
   info: (message: string) => void;
-  error: (message: string) => void;
+  error: (message: string, error: Error) => void;
   warn: (message: string) => void;
 }
 
 const logging = {
   getLogger: (namespace: string): ClusterLogger => {
-    const { log, error, warn } = console;
+    const { log, error: logError, warn } = console;
 
     return {
       info: (message: string): void => log(`${namespace}: ${message}`),
-      error: (message: string): void => error(`${namespace}: ${message}`),
+      error: (message: string, error: Error): void => logError(`${namespace}: ${message}`, error),
       warn: (message: string): void => warn(`${namespace}: ${message}`),
     };
   },
