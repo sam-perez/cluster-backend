@@ -1,6 +1,8 @@
 /* eslint-disable */
 
 /**
+ * Taken from: https://gist.github.com/vpalos/4334557
+ *
  * Demo: http://vpalos.com/sandbox/filter.js/
  *
  * A generic search algorithm designed for filtering (very) large lists of strings; when an input string
