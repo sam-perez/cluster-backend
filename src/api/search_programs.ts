@@ -3,6 +3,7 @@ import { SearchResult, repo as ProgramsRepo, SearchRequest } from '../repos/prog
 import { ApiHttpConfig, ExpressHttpVerb, RequestValidation } from './core';
 import { UserGeoLocationMissingError, RequestValidationError } from '../core/errors';
 import { NonNegativeInteger } from './validators';
+import { registerFunctionForMetrics } from '../core/metrics';
 
 /**
  * Handles searching for programs.
@@ -25,7 +26,9 @@ export interface ProgramApi {
 }
 
 export const api: ProgramApi = {
-  searchPrograms: (
+  // We are only collecting metrics for this main entry point at the moment.
+  // We should be able to see how different sort types are doing.
+  searchPrograms: registerFunctionForMetrics('SEARCH_PROGRAMS_API', (
     searchRequest: SearchRequest,
     sortType: SortType,
   ): SearchResult => {
@@ -54,7 +57,7 @@ export const api: ProgramApi = {
     }
 
     return null;
-  },
+  }),
 };
 
 /**

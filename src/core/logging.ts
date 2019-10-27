@@ -1,7 +1,7 @@
 /*
- Shim for our logging. Since this is a simple coding challenge,
- we only log to the console. Could layer in some external logging library,
- like Rollbar, Sentry, etc...
+  Shim for our logging. Since this is a simple coding challenge,
+  we only log to the console. Could layer in some external logging library,
+  like Rollbar, Sentry, etc...
 */
 
 export interface ClusterLogger {
@@ -13,6 +13,15 @@ export interface ClusterLogger {
 const logging = {
   getLogger: (namespace: string): ClusterLogger => {
     const { log, error: logError, warn } = console;
+
+    if (process.env.DISABLE_LOGGING === 'true') {
+      // gobble up all logs. Used during testing, etc...
+      return {
+        info: (): void => {},
+        error: (): void => {},
+        warn: (): void => {},
+      };
+    }
 
     return {
       info: (message: string): void => log(`${namespace}: ${message}`),

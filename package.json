@@ -15,7 +15,7 @@
         "build": "tsc --allowJs true",
         "start": "node .",
         "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
-        "test": "mocha --require ts-node/register tests/**/*.test.ts",
+        "test": "DISABLE_LOGGING=true mocha --require ts-node/register tests/**/*.test.ts",
         "watch": "nodemon -e js,ts --exec \"yarn build && yarn start\" --ignore dist"
     },
     "devDependencies": {
